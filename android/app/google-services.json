@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "132841472843",
+    "project_id": "campuswap-a5901",
+    "storage_bucket": "campuswap-a5901.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:132841472843:android:e2de0677fee8a34e659ece",
+        "android_client_info": {
+          "package_name": "com.example.campuswap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCBtxs6akP7BhRzAbzhhgc56ja-MqMpPPc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
