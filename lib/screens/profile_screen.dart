@@ -60,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           children: [
 
-            // HEADER WITH BIG USERNAME
+            // HEADER (BIG USERNAME)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -78,7 +78,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(width: 12),
 
-                  // 👇 UPDATED USERNAME UI
                   FutureBuilder<String>(
                     future: AuthService().getUserName(),
                     builder: (context, snapshot) {
@@ -96,7 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             snapshot.data ?? "",
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 20, // bigger here
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -132,7 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ---------------- LISTINGS ----------------
+  // ================= LISTINGS =================
   Widget _buildListings() {
     return StreamBuilder(
       stream: FirebaseFirestore.instance
@@ -185,6 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
 
+                    // EDIT
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.blue),
                       onPressed: () {
@@ -200,6 +200,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                     ),
 
+                    // DELETE
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () async {
@@ -219,7 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ---------------- FAVOURITES ----------------
+  // ================= FAVOURITES =================
   Widget _buildFavourites() {
     return StreamBuilder(
       stream: service.getFavourites(),
@@ -253,6 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   child: ListTile(
 
+                    // IMAGE
                     leading: SizedBox(
                       width: 50,
                       height: 50,
@@ -261,12 +263,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Image.network(
                           data['imageUrl'],
                           fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.image),
                         ),
                       ),
                     ),
 
                     title: Text(data['title']),
                     subtitle: Text("RM ${data['price']}"),
+
+                    // ❤️ REMOVE (SYNC FIX INCLUDED)
+                    trailing: IconButton(
+                      icon: const Icon(Icons.favorite, color: Colors.red),
+                      onPressed: () async {
+
+                        await service.removeFavourite(productId);
+
+                        if (mounted) {
+                          setState(() {}); // 🔥 refresh UI immediately
+                        }
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Removed from favourites"),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 );
               },
@@ -277,7 +300,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ---------------- STAT CARD ----------------
+  // ================= STAT CARD =================
   Widget _buildStatCard(String title, int index) {
     final isSelected = selectedTab == index;
 
