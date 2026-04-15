@@ -164,7 +164,7 @@ class _HomeContentState extends State<HomeContent> {
                     width: 40,
                     child: Center(
                       child: currentUserId == sellerId
-                          // 🚫 OWN PRODUCT BLOCK
+                          //  OWN PRODUCT BLOCK
                           ? IconButton(
                               icon: const Icon(Icons.favorite_border, color: Colors.grey),
                               onPressed: () {
@@ -176,7 +176,7 @@ class _HomeContentState extends State<HomeContent> {
                               },
                             )
 
-                          // ❤️ REAL-TIME FAV
+                          //  REAL-TIME FAV
                           : StreamBuilder<QuerySnapshot>(
                               stream: FirebaseFirestore.instance
                                   .collection('favourites')

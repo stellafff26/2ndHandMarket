@@ -272,7 +272,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: Text(data['title']),
                     subtitle: Text("RM ${data['price']}"),
 
-                    // ❤️ REMOVE (SYNC FIX INCLUDED)
+                    //  REMOVE (SYNC FIX INCLUDED)
                     trailing: IconButton(
                       icon: const Icon(Icons.favorite, color: Colors.red),
                       onPressed: () async {
