@@ -41,15 +41,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
               MaterialPageRoute(builder: (_) => const DashboardScreen()),
             ),
           ),
+
+          // UPDATED LOGOUT BUTTON
           IconButton(
             icon: const Icon(Icons.logout_outlined),
             onPressed: () async {
-              await AuthService().logout();
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (route) => false,
+
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: const Text("Logout"),
+                    content: const Text("Are you sure you want to logout?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text("Cancel"),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text("Logout"),
+                      ),
+                    ],
+                  );
+                },
               );
+
+              if (confirm == true) {
+                await AuthService().logout();
+
+                if (mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
+              }
             },
           ),
         ],
@@ -60,7 +88,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           children: [
 
-            // HEADER (BIG USERNAME)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -109,7 +136,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 20),
 
-            // STATS
             Row(
               children: [
                 _buildStatCard("Listings", 0),
@@ -119,7 +145,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 20),
 
-            // SWITCH VIEW
             Expanded(
               child: selectedTab == 0
                   ? _buildListings()
@@ -131,7 +156,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ================= LISTINGS =================
   Widget _buildListings() {
     return StreamBuilder(
       stream: FirebaseFirestore.instance
@@ -160,7 +184,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               margin: const EdgeInsets.symmetric(vertical: 8),
               child: ListTile(
 
-                // IMAGE
                 leading: SizedBox(
                   width: 50,
                   height: 50,
@@ -184,7 +207,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
 
-                    // EDIT
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.blue),
                       onPressed: () {
@@ -200,7 +222,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                     ),
 
-                    // DELETE
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () async {
@@ -220,7 +241,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ================= FAVOURITES =================
   Widget _buildFavourites() {
     return StreamBuilder(
       stream: service.getFavourites(),
@@ -254,7 +274,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   child: ListTile(
 
-                    // IMAGE
                     leading: SizedBox(
                       width: 50,
                       height: 50,
@@ -272,7 +291,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: Text(data['title']),
                     subtitle: Text("RM ${data['price']}"),
 
-                    //  REMOVE (SYNC FIX INCLUDED)
                     trailing: IconButton(
                       icon: const Icon(Icons.favorite, color: Colors.red),
                       onPressed: () async {
@@ -280,7 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         await service.removeFavourite(productId);
 
                         if (mounted) {
-                          setState(() {}); // 🔥 refresh UI immediately
+                          setState(() {});
                         }
 
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -300,7 +318,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ================= STAT CARD =================
   Widget _buildStatCard(String title, int index) {
     final isSelected = selectedTab == index;
 
