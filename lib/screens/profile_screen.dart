@@ -212,6 +212,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             margin: const EdgeInsets.symmetric(vertical: 8),
             child: ListTile(
 
+              // IMAGE
               leading: SizedBox(
                 width: 50,
                 height: 50,
@@ -226,14 +227,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
 
+              // TITLE + PRICE
               title: Text(data['title']),
               subtitle: Text("RM ${data['price']}"),
 
+              // ACTION BUTTONS
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
 
-                  // EDIT BUTTON
+                  // EDIT
                   IconButton(
                     icon: const Icon(Icons.edit, color: Colors.blue),
                     onPressed: () {
@@ -249,14 +252,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
 
-                  // DELETE BUTTON
+                  // DELETE WITH CONFIRMATION
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () async {
-                      await FirebaseFirestore.instance
-                          .collection('products')
-                          .doc(docId)
-                          .delete();
+
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: const Text("Delete Item"),
+                            content: const Text(
+                                "Are you sure you want to delete this product?"),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(context, false),
+                                child: const Text("Cancel"),
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(context, true),
+                                child: const Text("Delete"),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+
+                      if (confirm == true) {
+                        await FirebaseFirestore.instance
+                            .collection('products')
+                            .doc(docId)
+                            .delete();
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Product deleted"),
+                          ),
+                        );
+                      }
                     },
                   ),
                 ],
@@ -267,6 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     },
   );
+
 }
 
   // ===== FAVOURITE =====
