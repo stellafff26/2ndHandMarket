@@ -281,7 +281,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     if (selectedTab == 2) {
-      return "Your average price is RM ${avgPrice.toStringAsFixed(0)}, indicating your pricing pattern.";
+      return "Your average price is RM ${avgPrice.toStringAsFixed(0)}.";
     }
 
     return "No data available.";

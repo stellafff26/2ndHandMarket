@@ -31,6 +31,9 @@ class _UploadProductScreenState extends State<UploadProductScreen> {
     {'label': 'Books', 'icon': Icons.menu_book_outlined},
     {'label': 'Clothes', 'icon': Icons.checkroom_outlined},
     {'label': 'Furniture', 'icon': Icons.chair_outlined},
+    {'label': 'Sports & Fitness', 'icon': Icons.fitness_center_outlined},
+    {'label': 'Daily Essentials', 'icon': Icons.local_grocery_store_outlined},
+    {'label': 'Leisure & Hobbies', 'icon': Icons.toys_outlined},
     {'label': 'Others', 'icon': Icons.category_outlined},
   ];
 
