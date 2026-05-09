@@ -7,8 +7,7 @@ class FirestoreService {
 
   String get uid => _auth.currentUser!.uid;
 
-  // ── Products ──────────────────────────────────────────────
-
+  // Products 
   Future<void> addProduct({
     required String title,
     required String description,
@@ -30,7 +29,16 @@ class FirestoreService {
       'imageUrl': imageUrl,
       'sellerId': uid,
       'sellerName': sellerName,
+      'status': 'available', 
       'createdAt': Timestamp.now(),
+    });
+  }
+
+  Future<void> markProductAsSold(String productId) async {
+    await _db.collection('products').doc(productId).update({
+      'status': 'sold',
+      'buyerId': uid, 
+      'soldAt': Timestamp.now(),
     });
   }
 
@@ -49,6 +57,24 @@ class FirestoreService {
         .snapshots();
   }
 
+  Stream<QuerySnapshot> getSoldProducts() {
+    return _db
+        .collection('products')
+        .where('sellerId', isEqualTo: uid)
+        .where('status', isEqualTo: 'sold')
+        .orderBy('soldAt', descending: true)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> getBoughtProducts() {
+    return _db
+        .collection('products')
+        .where('buyerId', isEqualTo: uid)
+        .where('status', isEqualTo: 'sold')
+        .orderBy('soldAt', descending: true)
+        .snapshots();
+  }
+
   Future<DocumentSnapshot> getProductById(String docId) async {
     return await _db.collection('products').doc(docId).get();
   }
@@ -61,8 +87,7 @@ class FirestoreService {
     await _db.collection('products').doc(docId).update(data);
   }
 
-  // ── Favourites ────────────────────────────────────────────
-
+  // Favourites 
   Future<void> addFavourite(String productId) async {
     await _db
         .collection('favourites')
@@ -100,8 +125,7 @@ class FirestoreService {
         .snapshots();
   }
 
-  // ── Dashboard stats ───────────────────────────────────────
-
+  // Dashboard 
   Future<int> getMyProductCount() async {
     final snap = await _db
         .collection('products')
@@ -129,7 +153,6 @@ class FirestoreService {
     return counts;
   }
 
-  // Average price of current user's listings overall
   Future<double> getMyAveragePrice() async {
     final snap = await _db
         .collection('products')
@@ -140,5 +163,62 @@ class FirestoreService {
         .map((d) => (d['price'] as num).toDouble())
         .reduce((a, b) => a + b);
     return total / snap.docs.length;
+  }
+
+  // Chats & Messages 
+  Future<String> getOrCreateChat({
+    required String buyerId,
+    required String sellerId,
+    required String productId,
+  }) async {
+    final String chatId = "${buyerId}_${sellerId}_$productId";
+    final chatDoc = await _db.collection('chats').doc(chatId).get();
+    
+    if (!chatDoc.exists) {
+      final buyerData = await _db.collection('users').doc(buyerId).get();
+      final sellerData = await _db.collection('users').doc(sellerId).get();
+      
+      await _db.collection('chats').doc(chatId).set({
+        'participants': [buyerId, sellerId],
+        'buyerName': buyerData.data()?['username'] ?? 'User', 
+        'sellerName': sellerData.data()?['username'] ?? 'User', 
+        'productId': productId,
+      });
+    }
+    return chatId;
+  }
+
+  Future<void> sendMessage(String chatId, String text) async {
+    if (text.trim().isEmpty) return;
+
+    final messageData = {
+      'senderId': uid,
+      'text': text.trim(),
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+
+    await _db.collection('chats').doc(chatId).collection('messages').add(messageData);
+
+    await _db.collection('chats').doc(chatId).update({
+      'lastMessage': text.trim(),
+      'lastTimestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<QuerySnapshot> getMessages(String chatId) {
+    return _db
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> getUserChats() {
+    return _db
+        .collection('chats')
+        .where('participants', arrayContains: uid)
+        .orderBy('lastTimestamp', descending: true)
+        .snapshots();
   }
 }
