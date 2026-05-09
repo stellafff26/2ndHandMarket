@@ -1,28 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import '../models/product_model.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/app_colors.dart';
 import 'login_screen.dart';
 import 'dashboard_screen.dart';
 import 'edit_product_screen.dart';
+import 'product_detail_screen.dart';
+import 'order_chat_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  int selectedTab = 0; // 0=posted, 1=fav, 2=sold
+class ProfileScreenState extends State<ProfileScreen> {
+  int selectedTab = 0; // 0: posted, 1: fav, 2: sold
   final service = FirestoreService();
-  final _auth = AuthService();
-
+  final auth = AuthService();
+  
   User? get currentUser => FirebaseAuth.instance.currentUser;
-
+  
   String _name = '';
   String _email = '';
   String _university = '';
@@ -43,11 +45,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
         return;
       }
-
-      final data = await _auth.getUserData();
-
+      
+      final data = await auth.getUserData();
       if (!mounted) return;
-
+      
       setState(() {
         _name = data?['username'] ?? '';
         _email = data?['email'] ?? currentUser?.email ?? '';
@@ -105,8 +106,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Text(
                 'Logout',
                 style: TextStyle(
-                  color: AppColors.blue,
                   fontWeight: FontWeight.w700,
+                  color: AppColors.blue,
                 ),
               ),
             ),
@@ -116,11 +117,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (confirm == true && mounted) {
-      await _auth.logout();
+      await auth.logout();
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
         (route) => false,
       );
     }
@@ -225,7 +226,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const LoginScreen(),
+                          builder: (context) => const LoginScreen(),
                         ),
                         (route) => false,
                       );
@@ -266,7 +267,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const DashboardScreen(),
+                builder: (context) => const DashboardScreen(),
               ),
             ),
           ),
@@ -361,8 +362,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       fontSize: 11,
                                       color: AppColors.blue,
                                       fontWeight: FontWeight.w600,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -374,27 +375,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-
-            const SizedBox(height: 16),
-
             // TAB CARDS
+            const SizedBox(height: 16),
             Row(
               children: [
-                _buildMenuCard('Posted', Icons.inventory_2_outlined, 0),
-                _buildMenuCard('Favourites', Icons.favorite_border, 1),
-                _buildMenuCard('Sold', Icons.check_circle_outline, 2),
+                buildMenuCard('Posted', Icons.inventory_2_outlined, 0),
+                buildMenuCard('Saves', Icons.favorite_border, 1), 
+                buildMenuCard('Bought', Icons.shopping_bag_outlined, 2), 
+                buildMenuCard('Sold', Icons.check_circle_outline, 3),
               ],
             ),
-
             const SizedBox(height: 16),
-
             // TAB CONTENT
             Expanded(
-              child: selectedTab == 0
-                  ? _buildListings()
-                  : selectedTab == 1
-                      ? _buildFavourites()
-                      : _buildSold(),
+              child: IndexedStack(
+                index: selectedTab,
+                children: [
+                  _buildListings(),   // 0
+                  _buildFavourites(), // 1
+                  _buildBought(),     // 2
+                  _buildSold(),       // 3
+                ],
+              ),
             ),
           ],
         ),
@@ -402,37 +404,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuCard(String title, IconData icon, int index) {
+  Widget buildMenuCard(String title, IconData icon, int index) {
     final isSelected = selectedTab == index;
-
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => selectedTab = index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 3), 
+          padding: const EdgeInsets.symmetric(vertical: 12), 
           decoration: BoxDecoration(
             color: isSelected ? AppColors.orange : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected ? AppColors.orange : AppColors.border,
-              width: 1.5,
+              width: 1,
             ),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
-                size: 22,
+                size: 20, 
                 color: isSelected ? Colors.white : AppColors.textSecondary,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 10, 
                   fontWeight: FontWeight.w600,
                   color: isSelected ? Colors.white : AppColors.textPrimary,
                 ),
@@ -479,6 +481,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String imageUrl,
     required String title,
     required dynamic price,
+    String? subtitle,
     required Widget trailing,
   }) {
     return Container(
@@ -528,6 +531,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
+                if (subtitle != null) 
+                  Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 Text(
                   'RM $price',
                   style: const TextStyle(
@@ -545,12 +550,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildBought() {
+    return StreamBuilder<QuerySnapshot>(
+      key: const ValueKey('bought_stream'),
+      stream: service.getBoughtProducts(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return _errorState(snapshot.error.toString());
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+        final items = snapshot.data!.docs;
+        if (items.isEmpty) return _emptyState('You haven\'t bought anything yet', Icons.shopping_bag_outlined);
+
+        return ListView.builder(
+          padding: const EdgeInsets.only(top: 4),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final data = items[index].data() as Map<String, dynamic>;
+            final productId = items[index].id; 
+            
+            return GestureDetector(
+              onTap: () async {
+                final chatId = await service.getOrCreateChat(
+                  buyerId: service.uid, 
+                  sellerId: data['sellerId'], 
+                  productId: productId,
+                );
+                if (!context.mounted) return;
+                Navigator.push(context, MaterialPageRoute(builder: (_) => OrderChatScreen(
+                  chatId: chatId, productData: data,
+                )));
+              },
+              child: _productCard(
+                imageUrl: data['imageUrl'] ?? '',
+                title: data['title'] ?? '',
+                price: data['price'] ?? 0,
+                trailing: const Icon(Icons.verified_outlined, color: Colors.blue, size: 20),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _errorState(String error) {
+    return Center(
+      child: Text('Error loading data. Check index.', style: TextStyle(color: Colors.red[300], fontSize: 12)),
+    );
+  }
+
   Widget _buildListings() {
     if (currentUser == null) {
       return _emptyState('Please log in to view your products', Icons.lock_outline);
     }
 
     return StreamBuilder<QuerySnapshot>(
+      key: const ValueKey('posted_stream'),
       stream: FirebaseFirestore.instance
           .collection('products')
           .where('sellerId', isEqualTo: currentUser!.uid)
@@ -564,10 +619,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         final listings = snapshot.data!.docs;
         if (listings.isEmpty) {
-          return _emptyState(
-            'No posted products yet',
-            Icons.inventory_2_outlined,
-          );
+          return _emptyState('No posted products yet', Icons.inventory_2_outlined);
         }
 
         return ListView.builder(
@@ -594,7 +646,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => EditProductScreen(
+                          builder: (context) => EditProductScreen(
                             docId: docId,
                             data: data,
                           ),
@@ -631,8 +683,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             actions: [
                               TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(context, false),
+                                onPressed: () => Navigator.pop(context, false),
                                 child: const Text(
                                   'Cancel',
                                   style: TextStyle(
@@ -641,8 +692,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                               TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(context, true),
+                                onPressed: () => Navigator.pop(context, true),
                                 child: const Text(
                                   'Delete',
                                   style: TextStyle(
@@ -680,6 +730,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return StreamBuilder<QuerySnapshot>(
+      key: const ValueKey('favourites_stream'),
       stream: service.getFavourites(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -688,6 +739,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         }
 
+        final favItems = snapshot.data?.docs ?? [];
+        if (favItems.isEmpty) {
+          return _emptyState('No favourites yet', Icons.favorite_border);
+        }
         final favs = snapshot.data!.docs;
         if (favs.isEmpty) {
           return _emptyState('No favourites yet', Icons.favorite_border);
@@ -697,36 +752,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.only(top: 4),
           itemCount: favs.length,
           itemBuilder: (context, index) {
-            final productId = favs[index]['productId'];
+            final favData = favItems[index].data() as Map<String, dynamic>;
+            final productId = favData['productId'];
 
             return FutureBuilder<DocumentSnapshot>(
               future: service.getProductById(productId),
-              builder: (context, snap) {
-                if (!snap.hasData) return const SizedBox();
+              builder: (context, productSnap) {
+                if (!productSnap.hasData || !productSnap.data!.exists) return const SizedBox();
+                final product = ProductModel.fromDoc(productSnap.data!);
 
-                if (!snap.data!.exists) {
-                  return const SizedBox();
-                }
-
-                final data = snap.data!.data() as Map<String, dynamic>;
-
-                return _productCard(
-                  imageUrl: data['imageUrl'] ?? '',
-                  title: data['title'] ?? '',
-                  price: data['price'] ?? 0,
-                  trailing: IconButton(
-                    icon: const Icon(
-                      Icons.favorite,
-                      color: AppColors.error,
-                      size: 20,
-                    ),
-                    onPressed: () async {
-                      await service.removeFavourite(productId);
-                      if (mounted) {
-                        setState(() {});
-                        _showSnack('Removed from favourites');
-                      }
-                    },
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProductDetailScreen(product: product)),
+                    );
+                  },
+                  child: _productCard(
+                    imageUrl: product.imageUrl,
+                    title: product.title,
+                    price: product.price,
+                    trailing: const Icon(Icons.favorite, color: Colors.redAccent, size: 20),
                   ),
                 );
               },
@@ -738,9 +784,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSold() {
-    return _emptyState(
-      'No sold products yet',
-      Icons.check_circle_outline,
+    if (currentUser == null) {
+      return _emptyState('Please log in to view sold products', Icons.lock_outline);
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      key: const ValueKey('sold_stream'),
+      stream: service.getSoldProducts(), 
+      builder: (context, snapshot) {
+        
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Text(
+                'Load Fail, please check if Firestore indexes need to be created in Android Studio console.\n\nDetailed error: ${snapshot.error}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red, fontSize: 13),
+              ),
+            ),
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.blue),
+          );
+        }
+
+        final soldListings = snapshot.data?.docs ?? [];
+
+        if (soldListings.isEmpty) {
+          return _emptyState('No sold products yet', Icons.check_circle_outline);
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.only(top: 4),
+          itemCount: soldListings.length,
+          itemBuilder: (context, index) {
+            final data = soldListings[index].data() as Map<String, dynamic>;
+            final docId = soldListings[index].id;
+
+            return GestureDetector(
+              onTap: () async {
+                final chatId = await service.getOrCreateChat(
+                  buyerId: data['buyerId'] ?? '', 
+                  sellerId: service.uid,          
+                  productId: docId,              
+                );
+                
+                if (!context.mounted) return;
+                
+                Navigator.push(
+                  context, 
+                  MaterialPageRoute(
+                    builder: (_) => OrderChatScreen(
+                      chatId: chatId, 
+                      productData: data,
+                    ),
+                  ),
+                );
+              },
+              child: _productCard(
+                imageUrl: data['imageUrl'] ?? '',
+                title: data['title'] ?? '',
+                price: data['price'] ?? 0,
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Sold',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/product_model.dart';
 import '../widgets/app_colors.dart';
+import '../services/firestore_service.dart'; 
 import 'payment_screen.dart';
+import 'order_chat_screen.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final ProductModel product;
@@ -13,6 +16,9 @@ class ProductDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isOwnProduct = product.sellerId == currentUserId;
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -28,37 +34,153 @@ class ProductDetailScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: false,
       ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: SizedBox(
-          height: 54,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.blue,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PaymentScreen(product: product),
+
+      bottomNavigationBar: product.status == 'sold'
+          ? SafeArea(
+              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: SizedBox(
+                height: 54,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.inputBg, 
+                    foregroundColor: AppColors.textSecondary, 
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: null, 
+                  child: const Text(
+                    'Item Sold Out',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-              );
-            },
-            child: const Text(
-              'Buy Now',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+              ),
+            )
+          : isOwnProduct
+              ? SafeArea(
+                  minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: SizedBox(
+                    height: 54,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.inputBg,
+                        foregroundColor: AppColors.textSecondary,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: null,
+                      child: const Text(
+                        'This is your product',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+          : SafeArea(
+              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: SizedBox(
+                      height: 54,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          side: const BorderSide(color: AppColors.blue, width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () async {
+                          try {
+                            final chatId = await FirestoreService().getOrCreateChat(
+                              buyerId: FirestoreService().uid, 
+                              sellerId: product.sellerId,      
+                              productId: product.id,     
+                            );
+                            
+                            if (!context.mounted) return;
+                            
+                            final Map<String, dynamic> productDataForChat = {
+                              'id': product.id,
+                              'title': product.title,
+                              'price': product.price,
+                              'imageUrl': product.imageUrl,
+                              'sellerId': product.sellerId,
+                              'sellerName': product.sellerName,
+                              'status': 'available', 
+                              'buyerId': FirestoreService().uid, 
+                            };
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => OrderChatScreen(
+                                  chatId: chatId,
+                                  productData: productDataForChat,
+                                ),
+                              ),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to start chat: $e')),
+                            );
+                          }
+                        },
+                        child: const Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          color: AppColors.blue,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Buy Now
+                  Expanded(
+                    flex: 3,
+                    child: SizedBox(
+                      height: 54,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.blue,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PaymentScreen(product: product),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Buy Now',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ),
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         child: Column(
@@ -109,9 +231,7 @@ class ProductDetailScreen extends StatelessWidget {
                       ),
               ),
             ),
-
             const SizedBox(height: 20),
-
             // Title
             Text(
               product.title,
@@ -122,9 +242,7 @@ class ProductDetailScreen extends StatelessWidget {
                 letterSpacing: -0.4,
               ),
             ),
-
             const SizedBox(height: 10),
-
             // Price
             Text(
               'RM ${product.price.toStringAsFixed(1)}',
@@ -134,21 +252,19 @@ class ProductDetailScreen extends StatelessWidget {
                 color: AppColors.blue,
               ),
             ),
-
             const SizedBox(height: 16),
-
-            // Tags
+            
             Wrap(
               spacing: 10,
               runSpacing: 10,
               children: [
-                _InfoChip(
+                InfoChip(
                   icon: Icons.category_outlined,
                   label: product.category,
                   backgroundColor: AppColors.orange.withOpacity(0.12),
                   textColor: AppColors.orange,
                 ),
-                _InfoChip(
+                InfoChip(
                   icon: Icons.school_outlined,
                   label: product.university,
                   backgroundColor: AppColors.blue.withOpacity(0.10),
@@ -156,9 +272,7 @@ class ProductDetailScreen extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 24),
-
             // Description Card
             Container(
               width: double.infinity,
@@ -200,9 +314,7 @@ class ProductDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 18),
-
             // Seller Card
             Container(
               width: double.infinity,
@@ -262,9 +374,7 @@ class ProductDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 12),
-
             // Extra note
             Container(
               width: double.infinity,
@@ -284,7 +394,7 @@ class ProductDetailScreen extends StatelessWidget {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'This item is intended for campus-based face-to-face transactions. Please contact the seller after payment for further arrangements.',
+                      'Please contact the seller after payment for further arrangements.',
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.5,
@@ -295,7 +405,6 @@ class ProductDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 90),
           ],
         ),
@@ -304,13 +413,14 @@ class ProductDetailScreen extends StatelessWidget {
   }
 }
 
-class _InfoChip extends StatelessWidget {
+class InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color backgroundColor;
   final Color textColor;
 
-  const _InfoChip({
+  const InfoChip({
+    super.key,
     required this.icon,
     required this.label,
     required this.backgroundColor,

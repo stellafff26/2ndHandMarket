@@ -6,22 +6,20 @@ class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<DashboardScreen> createState() => DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class DashboardScreenState extends State<DashboardScreen> {
   final service = FirestoreService();
-
   int selectedTab = 0;
-
   int totalListings = 0;
   int totalFavourites = 0;
   double avgPrice = 0;
-
+  
   Map<String, int> listingCategory = {};
   Map<String, int> favCategory = {};
   Map<String, double> avgPriceByCategory = {};
-
+  
   bool isLoading = true;
   String? errorMessage;
 
@@ -34,15 +32,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const Color _textPrimary = Color(0xFF1F2D3D);
   static const Color _textSecondary = Color(0xFF8A9AB0);
 
-  static const List<Color> _catColors = [
-    Color(0xFF1D9E75), // Electronics
-    Color(0xFF7F77DD), // Books
-    Color(0xFFBA7517), // Clothes
-    Color(0xFFD4537E), // Furniture
-    Color(0xFF2F6FED), // Sports & Fitness
-    Color(0xFFFF9900), // Daily Essentials
-    Color(0xFF0F6E56), // Leisure & Hobbies
-    Color(0xFF888780), // Others
+
+  static const List<Color> catColors = [
+    _blue,              // Electronics 
+    Colors.deepPurple, // Books
+    Colors.pink,       // Clothes
+    Colors.brown,      // Furniture
+    Colors.green,      // Sports & Fitness
+    _navy,             // Daily Essentials 
+    _orange,           // Leisure & Hobbies 
+    _navy,             // Others 
   ];
 
   static const List<String> _categories = [
@@ -81,17 +80,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       int newTotalListings = 0;
       int newTotalFavourites = 0;
       double newAvgPrice = 0;
-
+      
       final Map<String, int> newListingCategory = {};
       final Map<String, int> newFavCategory = {};
       final Map<String, double> newAvgPriceByCategory = {};
 
-      // My listings
+      // My Listings
       final myProductsSnapshot = await service.getMyProducts().first;
       final products = myProductsSnapshot.docs;
-
       newTotalListings = products.length;
-
+      
       double totalPrice = 0;
       final Map<String, double> catPriceSum = {};
       final Map<String, int> catPriceCount = {};
@@ -102,14 +100,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final category = _normalizeCategory(data['category']);
 
         totalPrice += price;
-        newListingCategory[category] =
-            (newListingCategory[category] ?? 0) + 1;
+        newListingCategory[category] = (newListingCategory[category] ?? 0) + 1;
         catPriceSum[category] = (catPriceSum[category] ?? 0) + price;
         catPriceCount[category] = (catPriceCount[category] ?? 0) + 1;
       }
-
+      
       newAvgPrice = products.isNotEmpty ? totalPrice / products.length : 0;
-
+      
       for (final cat in catPriceSum.keys) {
         final count = catPriceCount[cat] ?? 0;
         if (count > 0) {
@@ -120,30 +117,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // Favourites
       final favSnapshot = await service.getFavourites().first;
       int validFavCount = 0;
-
+      
       for (final fav in favSnapshot.docs) {
         final productId = fav['productId'];
         try {
           final productDoc = await service.getProductById(productId);
-
           if (productDoc.exists) {
             validFavCount++;
             final data = productDoc.data() as Map<String, dynamic>;
             final category = _normalizeCategory(data['category']);
-            newFavCategory[category] =
-                (newFavCategory[category] ?? 0) + 1;
+            newFavCategory[category] = (newFavCategory[category] ?? 0) + 1;
           } else {
             await service.removeFavourite(productId);
           }
-        } catch (_) {
-          // Skip broken favourite item but continue loading dashboard
+        } catch (e) {
+          // Skip broken favourite item
         }
       }
-
+      
       newTotalFavourites = validFavCount;
 
       if (!mounted) return;
-
       setState(() {
         totalListings = newTotalListings;
         totalFavourites = newTotalFavourites;
@@ -165,28 +159,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  String get _chartTitle {
-    if (selectedTab == 0) return 'Listings by Category';
+  String get chartTitle {
+    if (selectedTab == 0) return 'Posted Listings by Category';
     if (selectedTab == 1) return 'Favourites by Category';
     return 'Avg Price by Category (RM)';
   }
 
   String _getInsight() {
     if (selectedTab == 0 && listingCategory.isNotEmpty) {
-      final top = listingCategory.entries
-          .reduce((a, b) => a.value > b.value ? a : b)
-          .key;
-      return 'Most of your listings are in $top category.';
+      final top = listingCategory.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+      return 'Most of your posted listings are in the $top category.';
     }
     if (selectedTab == 1 && favCategory.isNotEmpty) {
-      final top = favCategory.entries
-          .reduce((a, b) => a.value > b.value ? a : b)
-          .key;
-      return 'You mostly favourite items from $top category.';
+      final top = favCategory.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+      return 'You mostly favourite items from the $top category.';
     }
     if (selectedTab == 2 && avgPriceByCategory.isNotEmpty) {
-      final top = avgPriceByCategory.entries
-          .reduce((a, b) => a.value > b.value ? a : b);
+      final top = avgPriceByCategory.entries.reduce((a, b) => a.value > b.value ? a : b);
       return '${top.key} has the highest avg price at RM ${top.value.toStringAsFixed(0)}.';
     }
     return 'No data available yet.';
@@ -214,9 +203,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: _blue),
-            )
+          ? const Center(child: CircularProgressIndicator(color: _blue))
           : RefreshIndicator(
               onRefresh: loadData,
               color: _blue,
@@ -233,9 +220,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         decoration: BoxDecoration(
                           color: Colors.red.withOpacity(0.06),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.red.withOpacity(0.18),
-                          ),
+                          border: Border.all(color: Colors.red.withOpacity(0.18)),
                         ),
                         child: Text(
                           errorMessage!,
@@ -249,7 +234,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: 16),
                     ],
-
                     Row(
                       children: [
                         _statChip(0, '$totalListings', 'Listings'),
@@ -258,17 +242,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(width: 10),
                         _statChip(
                           2,
-                          avgPrice == 0
-                              ? '—'
-                              : 'RM ${avgPrice.toStringAsFixed(0)}',
+                          avgPrice == 0 ? '-' : 'RM ${avgPrice.toStringAsFixed(0)}',
                           'Avg Price',
                         ),
                       ],
                     ),
                     const SizedBox(height: 28),
-
                     Text(
-                      _chartTitle,
+                      chartTitle,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -287,15 +268,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         height: 220,
                         child: selectedTab == 2
                             ? _buildAvgPriceChart()
-                            : _buildCountChart(
-                                selectedTab == 0
-                                    ? listingCategory
-                                    : favCategory,
-                              ),
+                            : _buildCountChart(selectedTab == 0 ? listingCategory : favCategory),
                       ),
                     ),
                     const SizedBox(height: 24),
-
                     const Text(
                       'Category Breakdown',
                       style: TextStyle(
@@ -314,38 +290,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       child: Column(
                         children: _categories.asMap().entries.map((e) {
-                          final color = _catColors[e.key];
+                          final color = catColors[e.key];
                           if (selectedTab == 2) {
                             final avg = avgPriceByCategory[e.value] ?? 0;
                             final maxAvg = avgPriceByCategory.values.isEmpty
                                 ? 1.0
-                                : avgPriceByCategory.values
-                                    .reduce((a, b) => a > b ? a : b);
-                            return _avgPriceRow(
-                              e.value,
-                              avg,
-                              maxAvg == 0 ? 0 : avg / maxAvg,
-                              color,
-                            );
+                                : avgPriceByCategory.values.reduce((a, b) => a > b ? a : b);
+                            return _avgPriceRow(e.value, avg, maxAvg == 0 ? 0 : avg / maxAvg, color);
                           } else {
-                            final data = selectedTab == 0
-                                ? listingCategory
-                                : favCategory;
+                            final data = selectedTab == 0 ? listingCategory : favCategory;
                             final count = data[e.value] ?? 0;
-                            final total =
-                                data.values.fold(0, (s, v) => s + v);
-                            return _categoryRow(
-                              e.value,
-                              count,
-                              total == 0 ? 0 : count / total,
-                              color,
-                            );
+                            final total = data.values.fold(0, (s, v) => s + v);
+                            return _categoryRow(e.value, count, total == 0 ? 0 : count / total, color);
                           }
                         }).toList(),
                       ),
                     ),
                     const SizedBox(height: 24),
-
                     const Text(
                       'Insight',
                       style: TextStyle(
@@ -369,11 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
-                            Icons.lightbulb_outline_rounded,
-                            color: _blue,
-                            size: 18,
-                          ),
+                          const Icon(Icons.lightbulb_outline_rounded, color: _blue, size: 18),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
@@ -429,9 +386,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: selected
-                      ? Colors.white.withOpacity(0.85)
-                      : _textSecondary,
+                  color: selected ? Colors.white.withOpacity(0.85) : _textSecondary,
                 ),
               ),
             ],
@@ -442,12 +397,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildCountChart(Map<String, int> data) {
-    final entries =
-        _categories.map((c) => MapEntry(c, data[c] ?? 0)).toList();
-    final maxY = entries
-            .map((e) => e.value.toDouble())
-            .fold(0.0, (a, b) => a > b ? a : b) +
-        1;
+    final entries = _categories.map((c) => MapEntry(c, data[c] ?? 0)).toList();
+    final maxY = entries.map((e) => e.value.toDouble()).fold(0.0, (a, b) => a > b ? a : b) + 1;
 
     if (entries.every((e) => e.value == 0)) {
       return const Center(
@@ -467,7 +418,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             barRods: [
               BarChartRodData(
                 toY: e.value.value.toDouble(),
-                color: _catColors[e.key],
+                color: catColors[e.key],
                 width: 22,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(5),
@@ -481,7 +432,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (v) => FlLine(
+          getDrawingHorizontalLine: (value) => FlLine(
             color: Colors.black.withOpacity(0.05),
             strokeWidth: 1,
           ),
@@ -489,21 +440,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderData: FlBorderData(show: false),
         titlesData: _titlesData(
           entries.map((e) => e.key).toList(),
-          topValues: entries
-              .map((e) => e.value == 0 ? '' : '${e.value}')
-              .toList(),
+          topValues: entries.map((e) => e.value == 0 ? '' : '${e.value}').toList(),
         ),
       ),
     );
   }
 
   Widget _buildAvgPriceChart() {
-    final entries = _categories
-        .map((c) => MapEntry(c, avgPriceByCategory[c] ?? 0.0))
-        .toList();
-    final maxY =
-        entries.map((e) => e.value).fold(0.0, (a, b) => a > b ? a : b) *
-            1.2;
+    final entries = _categories.map((c) => MapEntry(c, avgPriceByCategory[c] ?? 0.0)).toList();
+    final maxY = entries.map((e) => e.value).fold(0.0, (a, b) => a > b ? a : b) * 1.2;
 
     if (entries.every((e) => e.value == 0)) {
       return const Center(
@@ -523,7 +468,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             barRods: [
               BarChartRodData(
                 toY: e.value.value,
-                color: _catColors[e.key],
+                color: catColors[e.key],
                 width: 22,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(5),
@@ -537,7 +482,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (v) => FlLine(
+          getDrawingHorizontalLine: (value) => FlLine(
             color: Colors.black.withOpacity(0.05),
             strokeWidth: 1,
           ),
@@ -545,19 +490,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderData: FlBorderData(show: false),
         titlesData: _titlesData(
           entries.map((e) => e.key).toList(),
-          topValues: entries
-              .map((e) =>
-                  e.value == 0 ? '' : 'RM${e.value.toStringAsFixed(0)}')
-              .toList(),
+          topValues: entries.map((e) => e.value == 0 ? '' : 'RM${e.value.toStringAsFixed(0)}').toList(),
         ),
       ),
     );
   }
 
-  FlTitlesData _titlesData(
-    List<String> labels, {
-    required List<String> topValues,
-  }) {
+  FlTitlesData _titlesData(List<String> labels, {required List<String> topValues}) {
     return FlTitlesData(
       topTitles: AxisTitles(
         sideTitles: SideTitles(
@@ -565,9 +504,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           reservedSize: 22,
           getTitlesWidget: (value, meta) {
             final i = value.toInt();
-            if (i >= topValues.length || topValues[i].isEmpty) {
-              return const SizedBox();
-            }
+            if (i >= topValues.length || topValues[i].isEmpty) return const SizedBox();
             return Text(
               topValues[i],
               style: const TextStyle(
@@ -579,33 +516,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         ),
       ),
-      rightTitles: AxisTitles(
-        sideTitles: SideTitles(showTitles: false),
-      ),
-      leftTitles: AxisTitles(
-        sideTitles: SideTitles(showTitles: false),
-      ),
+      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       bottomTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
           getTitlesWidget: (value, meta) {
             final i = value.toInt();
             if (i >= labels.length) return const SizedBox();
-
             String label = labels[i];
             if (label == 'Sports & Fitness') label = 'Sports';
             if (label == 'Daily Essentials') label = 'Daily';
             if (label == 'Leisure & Hobbies') label = 'Leisure';
             if (label.length > 5) label = label.substring(0, 5);
-
             return Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: _textSecondary,
-                ),
+                style: const TextStyle(fontSize: 10, color: _textSecondary),
               ),
             );
           },
@@ -614,12 +542,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _categoryRow(
-    String label,
-    int count,
-    double percent,
-    Color color,
-  ) {
+  Widget _categoryRow(String label, int count, double percent, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 11),
       child: Row(
@@ -627,21 +550,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 10),
           SizedBox(
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: _textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 12, color: _textPrimary, fontWeight: FontWeight.w500),
             ),
           ),
           Expanded(
@@ -661,11 +577,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Text(
               '$count',
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontSize: 12,
-                color: _textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 12, color: _textSecondary, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -673,12 +585,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _avgPriceRow(
-    String label,
-    double avg,
-    double percent,
-    Color color,
-  ) {
+  Widget _avgPriceRow(String label, double avg, double percent, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 11),
       child: Row(
@@ -686,21 +593,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 10),
           SizedBox(
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: _textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 12, color: _textPrimary, fontWeight: FontWeight.w500),
             ),
           ),
           Expanded(
@@ -718,13 +618,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           SizedBox(
             width: 44,
             child: Text(
-              avg == 0 ? '—' : 'RM${avg.toStringAsFixed(0)}',
+              avg == 0 ? '-' : 'RM${avg.toStringAsFixed(0)}',
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontSize: 11,
-                color: _textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 11, color: _textSecondary, fontWeight: FontWeight.w600),
             ),
           ),
         ],

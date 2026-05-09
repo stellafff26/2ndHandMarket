@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product_model.dart';
 import '../widgets/app_colors.dart';
+import '../services/firestore_service.dart'; 
 import 'payment_success_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -12,13 +13,13 @@ class PaymentScreen extends StatefulWidget {
   });
 
   @override
-  State<PaymentScreen> createState() => _PaymentScreenState();
+  State<PaymentScreen> createState() => PaymentScreenState();
 }
 
-class _PaymentScreenState extends State<PaymentScreen> {
+class PaymentScreenState extends State<PaymentScreen> {
   String _selectedMethod = 'Online Banking';
 
-  Widget _buildPaymentOption({
+  Widget buildPaymentOption({
     required String title,
     required IconData icon,
     required String value,
@@ -55,9 +56,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.blue.withOpacity(0.12)
-                    : AppColors.inputBg,
+                color: isSelected ? AppColors.blue.withOpacity(0.12) : AppColors.inputBg,
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -72,16 +71,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: isSelected
-                      ? AppColors.textPrimary
-                      : AppColors.textSecondary,
+                  color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
                 ),
               ),
             ),
             Icon(
-              isSelected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_off,
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
               color: isSelected ? AppColors.blue : AppColors.textSecondary,
             ),
           ],
@@ -119,13 +114,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PaymentSuccessScreen(),
-                ),
-              );
+            onPressed: () async {
+              try {
+                await FirestoreService().markProductAsSold(widget.product.id);
+                
+                if (!mounted) return;
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PaymentSuccessScreen(),
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Payment process failed: $e')),
+                );
+              }
             },
             child: const Text(
               'Confirm Payment',
@@ -191,7 +195,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         ),
                       ),
                       Text(
-                        'RM ${widget.product.price.toStringAsFixed(1)}',
+                        'RM ${(widget.product.price).toStringAsFixed(1)}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -203,9 +207,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 22),
-
             const Text(
               'Select Payment Method',
               style: TextStyle(
@@ -215,25 +217,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
             ),
             const SizedBox(height: 12),
-
-            _buildPaymentOption(
+            buildPaymentOption(
               title: 'Online Banking',
               icon: Icons.account_balance_outlined,
               value: 'Online Banking',
             ),
-            _buildPaymentOption(
+            buildPaymentOption(
               title: 'Credit / Debit Card',
               icon: Icons.credit_card_outlined,
               value: 'Credit / Debit Card',
             ),
-            _buildPaymentOption(
+            buildPaymentOption(
               title: "Touch 'n Go",
               icon: Icons.account_balance_wallet_outlined,
               value: "Touch 'n Go",
             ),
-
             const SizedBox(height: 10),
-
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
@@ -263,7 +262,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 90),
           ],
         ),

@@ -12,20 +12,16 @@ class EditProductScreen extends StatefulWidget {
   });
 
   @override
-  State<EditProductScreen> createState() =>
-      _EditProductScreenState();
+  State<EditProductScreen> createState() => EditProductScreenState();
 }
 
-class _EditProductScreenState extends State<EditProductScreen> {
-
+class EditProductScreenState extends State<EditProductScreen> {
   late TextEditingController titleController;
   late TextEditingController priceController;
   late TextEditingController descController;
-
-  // ===== ADD 1: category variable =====
+  
   String? selectedCategory;
-
-  // ===== ADD 2: category list =====
+  
   final List<Map<String, dynamic>> categories = [
     {'label': 'Electronics', 'icon': Icons.devices_outlined},
     {'label': 'Books', 'icon': Icons.menu_book_outlined},
@@ -40,17 +36,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
   @override
   void initState() {
     super.initState();
-
-    titleController =
-        TextEditingController(text: widget.data['title']);
-
-    priceController =
-        TextEditingController(text: widget.data['price'].toString());
-
-    descController =
-        TextEditingController(text: widget.data['description']);
-
-    // ===== ADD 3: preload category =====
+    titleController = TextEditingController(text: widget.data['title']);
+    priceController = TextEditingController(text: widget.data['price'].toString());
+    descController = TextEditingController(text: widget.data['description']);
     selectedCategory = widget.data['category'];
   }
 
@@ -62,15 +50,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
       'title': titleController.text,
       'price': double.parse(priceController.text),
       'description': descController.text,
-
-      // ===== ADD 4: update category =====
       'category': selectedCategory,
     });
-
+    
+    if(!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Updated successfully")),
     );
-
     Navigator.pop(context);
   }
 
@@ -78,26 +64,21 @@ class _EditProductScreenState extends State<EditProductScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Edit Product")),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
             TextField(
               controller: titleController,
               decoration: const InputDecoration(labelText: "Title"),
             ),
-
             const SizedBox(height: 10),
-
             TextField(
               controller: priceController,
               decoration: const InputDecoration(labelText: "Price"),
               keyboardType: TextInputType.number,
             ),
-
             const SizedBox(height: 10),
-
             TextField(
               controller: descController,
               maxLines: 6,
@@ -112,10 +93,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // ===== ADD 5: CATEGORY UI =====
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -123,15 +101,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-
             const SizedBox(height: 10),
-
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: categories.map((cat) {
                 final isSelected = selectedCategory == cat['label'];
-
                 return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -139,12 +114,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? Colors.blue
-                          : Colors.grey.shade200,
+                      color: isSelected ? Colors.blue : Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
@@ -153,18 +125,14 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         Icon(
                           cat['icon'],
                           size: 16,
-                          color: isSelected
-                              ? Colors.white
-                              : Colors.black54,
+                          color: isSelected ? Colors.white : Colors.black54,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           cat['label'],
                           style: TextStyle(
                             fontSize: 12,
-                            color: isSelected
-                                ? Colors.white
-                                : Colors.black,
+                            color: isSelected ? Colors.white : Colors.black,
                           ),
                         ),
                       ],
@@ -173,13 +141,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 );
               }).toList(),
             ),
-
             const SizedBox(height: 20),
-
             ElevatedButton(
               onPressed: updateProduct,
               child: const Text("Update"),
-            ),
+            )
           ],
         ),
       ),

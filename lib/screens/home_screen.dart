@@ -6,21 +6,23 @@ import '../models/product_model.dart';
 import 'upload_product_screen.dart';
 import 'profile_screen.dart';
 import 'product_detail_screen.dart';
+import 'notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
+class HomeScreenState extends State<HomeScreen> {
+  int currentIndex = 0;
 
-  final List<Widget> _pages = [
+  final List<Widget> pages = [
     const HomeContent(),
-    const SizedBox(),
+    const SizedBox(), 
     const ProfileScreen(),
+    const NotificationScreen(), 
   ];
 
   @override
@@ -28,16 +30,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+        index: currentIndex,
+        children: pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
+        currentIndex: currentIndex,
         backgroundColor: Colors.white,
         selectedItemColor: AppColors.blue,
         unselectedItemColor: AppColors.campuDark,
         type: BottomNavigationBarType.fixed,
         elevation: 8,
+  
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
@@ -54,18 +57,23 @@ class _HomeScreenState extends State<HomeScreen> {
             activeIcon: Icon(Icons.person),
             label: 'Profile',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline),
+            activeIcon: Icon(Icons.chat_bubble_rounded),
+            label: 'Inbox', 
+          ),
         ],
         onTap: (index) {
           if (index == 1) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const UploadProductScreen(),
+                builder: (context) => const UploadProductScreen(),
               ),
             );
           } else {
             setState(() {
-              _currentIndex = index;
+              currentIndex = index;
             });
           }
         },
@@ -78,13 +86,12 @@ class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
 
   @override
-  State<HomeContent> createState() => _HomeContentState();
+  State<HomeContent> createState() => HomeContentState();
 }
 
-class _HomeContentState extends State<HomeContent> {
+class HomeContentState extends State<HomeContent> {
   final FirestoreService service = FirestoreService();
   final TextEditingController _searchController = TextEditingController();
-
   String _searchQuery = '';
   String _selectedCategory = 'All';
 
@@ -94,41 +101,34 @@ class _HomeContentState extends State<HomeContent> {
     super.dispose();
   }
 
-  bool _matchesSearch(ProductModel product) {
+  bool _matchesSearch(dynamic product) {
     final q = _searchQuery.trim().toLowerCase();
     if (q.isEmpty) return true;
-
     return product.title.toLowerCase().contains(q) ||
         product.category.toLowerCase().contains(q) ||
         product.university.toLowerCase().contains(q);
   }
 
-  bool _matchesCategory(ProductModel product) {
+  bool _matchesCategory(dynamic product) {
     if (_selectedCategory == 'All') return true;
     return product.category == _selectedCategory;
   }
 
   IconData _categoryIcon(String category) {
     final c = category.toLowerCase();
-
     if (c.contains('book')) return Icons.menu_book_rounded;
     if (c.contains('electronic')) return Icons.devices_other_rounded;
-    if (c.contains('cloth') || c.contains('fashion')) {
-      return Icons.checkroom_rounded;
-    }
+    if (c.contains('cloth') || c.contains('fashion')) return Icons.checkroom_rounded;
     if (c.contains('furniture')) return Icons.chair_alt_rounded;
     if (c.contains('sport')) return Icons.sports_basketball_rounded;
     if (c.contains('beauty')) return Icons.face_retouching_natural_rounded;
     if (c.contains('food')) return Icons.fastfood_rounded;
-    if (c.contains('toy') || c.contains('game') || c.contains('hobbies')) {
-      return Icons.extension_rounded;
-    }
+    if (c.contains('toy') || c.contains('game') || c.contains('hobbies')) return Icons.extension_rounded;
     return Icons.category_rounded;
   }
 
   Color _categoryColor(String category) {
     final c = category.toLowerCase();
-
     if (c.contains('book')) return Colors.deepPurple;
     if (c.contains('electronic')) return AppColors.blue;
     if (c.contains('cloth') || c.contains('fashion')) return Colors.pink;
@@ -136,9 +136,7 @@ class _HomeContentState extends State<HomeContent> {
     if (c.contains('sport')) return Colors.green;
     if (c.contains('beauty')) return Colors.purple;
     if (c.contains('food')) return Colors.redAccent;
-    if (c.contains('toy') || c.contains('game') || c.contains('hobbies')) {
-      return AppColors.orange;
-    }
+    if (c.contains('toy') || c.contains('game') || c.contains('hobbies')) return AppColors.orange;
     return AppColors.campuDark;
   }
 
@@ -147,27 +145,28 @@ class _HomeContentState extends State<HomeContent> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
-        child: StreamBuilder(
+        child: StreamBuilder<QuerySnapshot>(
           stream: service.getAllProducts(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
             final docs = snapshot.data!.docs;
-            final allProducts =
-                docs.map((doc) => ProductModel.fromDoc(doc)).toList();
-
+            final allProducts = docs
+                .where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return data['status'] != 'sold'; 
+                })
+                .map((doc) => ProductModel.fromDoc(doc))
+                .toList();
+            
             final categories = <String>{
               'All',
-              ...allProducts.map((p) => p.category).where((c) => c.isNotEmpty),
+              ...allProducts.map((p) => p.category).where((c) => c.isNotEmpty)
             }.toList();
-
-            final featuredCategories =
-                categories.where((c) => c != 'All').take(8).toList();
-
+            
+            final featuredCategories = categories.where((c) => c != 'All').take(8).toList();
             final filteredProducts = allProducts.where((product) {
               return _matchesSearch(product) && _matchesCategory(product);
             }).toList();
@@ -188,14 +187,14 @@ class _HomeContentState extends State<HomeContent> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text.rich(
+                      const Text.rich(
                         TextSpan(
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.5,
                           ),
-                          children: const [
+                          children: [
                             TextSpan(
                               text: 'Campu',
                               style: TextStyle(color: AppColors.orange),
@@ -209,7 +208,7 @@ class _HomeContentState extends State<HomeContent> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Discover second-hand deals from your campus community',
+                        'Discover second-hand deals on campus',
                         style: TextStyle(
                           fontSize: 14,
                           height: 1.5,
@@ -217,7 +216,6 @@ class _HomeContentState extends State<HomeContent> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       Container(
                         decoration: BoxDecoration(
                           color: AppColors.inputBg,
@@ -231,7 +229,7 @@ class _HomeContentState extends State<HomeContent> {
                             });
                           },
                           decoration: InputDecoration(
-                            hintText: 'Search by title, category, or university',
+                            hintText: 'Search by title, category, or univ',
                             hintStyle: const TextStyle(
                               fontSize: 14,
                               color: AppColors.textSecondary,
@@ -262,17 +260,6 @@ class _HomeContentState extends State<HomeContent> {
                               borderRadius: BorderRadius.circular(14),
                               borderSide: BorderSide.none,
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(
-                                color: AppColors.blue,
-                                width: 1.3,
-                              ),
-                            ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 14,
@@ -280,163 +267,150 @@ class _HomeContentState extends State<HomeContent> {
                           ),
                         ),
                       ),
-
-                      if (featuredCategories.isNotEmpty) ...[
-                        const SizedBox(height: 18),
-                        const Text(
-                          'Featured Categories',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        SizedBox(
-                          height: 108,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: featuredCategories.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(width: 12),
-                            itemBuilder: (context, index) {
-                              final category = featuredCategories[index];
-                              final isSelected = _selectedCategory == category;
-                              final color = _categoryColor(category);
-
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedCategory = category;
-                                  });
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 180),
-                                  width: 96,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? color.withOpacity(0.12)
-                                        : AppColors.inputBg,
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? color
-                                          : Colors.transparent,
-                                      width: 1.4,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: isSelected
-                                              ? color.withOpacity(0.16)
-                                              : Colors.white,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          _categoryIcon(category),
-                                          color: color,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Expanded(
-                                        child: Center(
-                                          child: Text(
-                                            category,
-                                            textAlign: TextAlign.center,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: isSelected
-                                                  ? color
-                                                  : AppColors.campuDark,
-                                              height: 1.25,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-
-                      const SizedBox(height: 16),
-
-                      SizedBox(
-                        height: 38,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: categories.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 10),
-                          itemBuilder: (context, index) {
-                            final category = categories[index];
-                            final isSelected = _selectedCategory == category;
-
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedCategory = category;
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 9,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? AppColors.blue
-                                      : AppColors.inputBg,
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      category == 'All'
-                                          ? Icons.apps_rounded
-                                          : Icons.category_outlined,
-                                      size: 15,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : AppColors.campuDark,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      category,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: isSelected
-                                            ? Colors.white
-                                            : AppColors.campuDark,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
+                    ],
+                  ),
+                ),
+                
+                if (featuredCategories.isNotEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 18, 20, 12),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Featured Categories',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
                         ),
                       ),
-                    ],
+                    ),
+                  ),
+                  SizedBox(
+                    height: 108,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: featuredCategories.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemBuilder: (context, index) {
+                        final category = featuredCategories[index];
+                        final isSelected = _selectedCategory == category;
+                        final color = _categoryColor(category);
+
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedCategory = category;
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            width: 96,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected ? color.withOpacity(0.12) : AppColors.inputBg,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: isSelected ? color : Colors.transparent,
+                                width: 1.4,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? color.withOpacity(0.16) : Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    _categoryIcon(category),
+                                    color: color,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Expanded(
+                                  child: Center(
+                                    child: Text(
+                                      category,
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected ? color : AppColors.campuDark,
+                                        height: 1.25,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 16),
+                
+                SizedBox(
+                  height: 38,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final category = categories[index];
+                      final isSelected = _selectedCategory == category;
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedCategory = category;
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 9,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.blue : AppColors.inputBg,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                category == 'All' ? Icons.apps_rounded : Icons.category_outlined,
+                                size: 15,
+                                color: isSelected ? Colors.white : AppColors.campuDark,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                category,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isSelected ? Colors.white : AppColors.campuDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
 
@@ -487,8 +461,7 @@ class _HomeContentState extends State<HomeContent> {
                       : filteredProducts.isEmpty
                           ? Center(
                               child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 28),
+                                padding: const EdgeInsets.symmetric(horizontal: 28),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -497,8 +470,7 @@ class _HomeContentState extends State<HomeContent> {
                                       height: 90,
                                       decoration: BoxDecoration(
                                         color: AppColors.inputBg,
-                                        borderRadius:
-                                            BorderRadius.circular(24),
+                                        borderRadius: BorderRadius.circular(24),
                                       ),
                                       child: const Icon(
                                         Icons.search_off_rounded,
@@ -532,13 +504,11 @@ class _HomeContentState extends State<HomeContent> {
                               ),
                             )
                           : ListView.builder(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                               itemCount: filteredProducts.length,
                               itemBuilder: (context, index) {
                                 final product = filteredProducts[index];
                                 final productId = product.id;
-
                                 final currentUserId = service.uid;
                                 final sellerId = product.sellerId;
 
@@ -562,21 +532,17 @@ class _HomeContentState extends State<HomeContent> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => ProductDetailScreen(
-                                            product: product,
-                                          ),
+                                          builder: (context) => ProductDetailScreen(product: product),
                                         ),
                                       );
                                     },
                                     child: Padding(
                                       padding: const EdgeInsets.all(14),
                                       child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(16),
+                                            borderRadius: BorderRadius.circular(16),
                                             child: SizedBox(
                                               width: 88,
                                               height: 88,
@@ -584,16 +550,12 @@ class _HomeContentState extends State<HomeContent> {
                                                   ? Image.network(
                                                       product.imageUrl,
                                                       fit: BoxFit.cover,
-                                                      errorBuilder: (context,
-                                                          error, stackTrace) {
+                                                      errorBuilder: (context, error, stackTrace) {
                                                         return Container(
-                                                          color:
-                                                              AppColors.inputBg,
+                                                          color: AppColors.inputBg,
                                                           child: const Icon(
-                                                            Icons
-                                                                .broken_image_outlined,
-                                                            color: AppColors
-                                                                .textSecondary,
+                                                            Icons.broken_image_outlined,
+                                                            color: AppColors.textSecondary,
                                                             size: 30,
                                                           ),
                                                         );
@@ -603,8 +565,7 @@ class _HomeContentState extends State<HomeContent> {
                                                       color: AppColors.inputBg,
                                                       child: const Icon(
                                                         Icons.image_outlined,
-                                                        color: AppColors
-                                                            .textSecondary,
+                                                        color: AppColors.textSecondary,
                                                         size: 30,
                                                       ),
                                                     ),
@@ -613,19 +574,16 @@ class _HomeContentState extends State<HomeContent> {
                                           const SizedBox(width: 14),
                                           Expanded(
                                             child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
+                                              crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text(
                                                   product.title,
                                                   maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                  overflow: TextOverflow.ellipsis,
                                                   style: const TextStyle(
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.w700,
-                                                    color:
-                                                        AppColors.textPrimary,
+                                                    color: AppColors.textPrimary,
                                                     height: 1.35,
                                                   ),
                                                 ),
@@ -644,27 +602,16 @@ class _HomeContentState extends State<HomeContent> {
                                                   runSpacing: 8,
                                                   children: [
                                                     _HomeChip(
-                                                      icon: Icons
-                                                          .category_outlined,
+                                                      icon: Icons.category_outlined,
                                                       label: product.category,
-                                                      backgroundColor:
-                                                          AppColors.orange
-                                                              .withOpacity(
-                                                                  0.10),
-                                                      textColor:
-                                                          AppColors.orange,
+                                                      backgroundColor: AppColors.orange.withOpacity(0.10),
+                                                      textColor: AppColors.orange,
                                                     ),
                                                     _HomeChip(
-                                                      icon:
-                                                          Icons.school_outlined,
-                                                      label:
-                                                          product.university,
-                                                      backgroundColor:
-                                                          AppColors.blue
-                                                              .withOpacity(
-                                                                  0.08),
-                                                      textColor:
-                                                          AppColors.blue,
+                                                      icon: Icons.school_outlined,
+                                                      label: product.university,
+                                                      backgroundColor: AppColors.blue.withOpacity(0.08),
+                                                      textColor: AppColors.blue,
                                                     ),
                                                   ],
                                                 ),
@@ -674,120 +621,69 @@ class _HomeContentState extends State<HomeContent> {
                                           const SizedBox(width: 10),
                                           Column(
                                             children: [
-                                              currentUserId == sellerId
-                                                  ? Container(
+                                              if (currentUserId == sellerId)
+                                                Container(
+                                                  width: 40,
+                                                  height: 40,
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.inputBg,
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: IconButton(
+                                                    icon: const Icon(Icons.favorite_border, color: Colors.grey, size: 20),
+                                                    onPressed: () {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(content: Text('You cannot favourite your own product')),
+                                                      );
+                                                    },
+                                                  ),
+                                                )
+                                              else
+                                                StreamBuilder<QuerySnapshot>(
+                                                  stream: FirebaseFirestore.instance
+                                                      .collection('favourites')
+                                                      .doc(currentUserId)
+                                                      .collection('items')
+                                                      .snapshots(),
+                                                  builder: (context, favSnapshot) {
+                                                    if (!favSnapshot.hasData) {
+                                                      return Container(
+                                                        width: 40,
+                                                        height: 40,
+                                                        decoration: BoxDecoration(
+                                                          color: AppColors.inputBg,
+                                                          borderRadius: BorderRadius.circular(12),
+                                                        ),
+                                                      );
+                                                    }
+                                                    
+                                                    final favDocs = favSnapshot.data!.docs;
+                                                    final isFav = favDocs.any((doc) => doc['productId'] == productId);
+
+                                                    return Container(
                                                       width: 40,
                                                       height: 40,
                                                       decoration: BoxDecoration(
-                                                        color:
-                                                            AppColors.inputBg,
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(12),
+                                                        color: isFav ? Colors.red.withOpacity(0.08) : AppColors.inputBg,
+                                                        borderRadius: BorderRadius.circular(12),
                                                       ),
                                                       child: IconButton(
-                                                        icon: const Icon(
-                                                          Icons
-                                                              .favorite_border,
-                                                          color: Colors.grey,
+                                                        icon: Icon(
+                                                          isFav ? Icons.favorite : Icons.favorite_border,
+                                                          color: isFav ? Colors.red : Colors.grey,
                                                           size: 20,
                                                         ),
-                                                        onPressed: () {
-                                                          ScaffoldMessenger.of(
-                                                                  context)
-                                                              .showSnackBar(
-                                                            const SnackBar(
-                                                              content: Text(
-                                                                'You cannot favourite your own product',
-                                                              ),
-                                                            ),
-                                                          );
+                                                        onPressed: () async {
+                                                          if (isFav) {
+                                                            await service.removeFavourite(productId);
+                                                          } else {
+                                                            await service.addFavourite(productId);
+                                                          }
                                                         },
                                                       ),
-                                                    )
-                                                  : StreamBuilder<
-                                                      QuerySnapshot>(
-                                                      stream: FirebaseFirestore
-                                                          .instance
-                                                          .collection(
-                                                              'favourites')
-                                                          .doc(currentUserId)
-                                                          .collection('items')
-                                                          .snapshots(),
-                                                      builder: (context,
-                                                          favSnapshot) {
-                                                        if (!favSnapshot
-                                                            .hasData) {
-                                                          return Container(
-                                                            width: 40,
-                                                            height: 40,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: AppColors
-                                                                  .inputBg,
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          12),
-                                                            ),
-                                                          );
-                                                        }
-
-                                                        final favDocs =
-                                                            favSnapshot
-                                                                .data!.docs;
-
-                                                        final isFav =
-                                                            favDocs.any(
-                                                          (doc) =>
-                                                              doc['productId'] ==
-                                                              productId,
-                                                        );
-
-                                                        return Container(
-                                                          width: 40,
-                                                          height: 40,
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: isFav
-                                                                ? Colors.red
-                                                                    .withOpacity(
-                                                                        0.08)
-                                                                : AppColors
-                                                                    .inputBg,
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        12),
-                                                          ),
-                                                          child: IconButton(
-                                                            icon: Icon(
-                                                              isFav
-                                                                  ? Icons
-                                                                      .favorite
-                                                                  : Icons
-                                                                      .favorite_border,
-                                                              color: isFav
-                                                                  ? Colors.red
-                                                                  : Colors.grey,
-                                                              size: 20,
-                                                            ),
-                                                            onPressed:
-                                                                () async {
-                                                              if (isFav) {
-                                                                await service
-                                                                    .removeFavourite(
-                                                                        productId);
-                                                              } else {
-                                                                await service
-                                                                    .addFavourite(
-                                                                        productId);
-                                                              }
-                                                            },
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
+                                                    );
+                                                  },
+                                                ),
                                             ],
                                           ),
                                         ],
