@@ -1,47 +1,201 @@
 # Campus Second-Hand Market
 
-A campus second-hand marketplace mobile app built with Flutter and Firebase, designed for university students to buy and sell used items within their own campus community.
+A modern campus second-hand marketplace mobile application built with Flutter and Firebase, designed for university students to buy and sell items safely within their own campus community.
 
-| Feature | Description |
-|---|---|
-| Register / Login | Email & password auth via Firebase Auth. University is selected once at registration and stored in the user profile. |
-| Homepage | Browse all listings. Filter by category (e.g. Books) or by university (e.g. UM) to find items from the same campus. Keyword search also available. |
-| Product Detail | Full listing view — image, price, description, university, category. Tap Buy Now to proceed to payment. |
-| Payment | Simulated payment flow: Buy Now → Confirm Payment → Success page. After payment, buyer contacts seller directly to arrange collection. |
-| Upload Product | Post a listing with name, price, description, image, and category. University is auto-filled from the user profile.|
-| User Profile | View account info, manage own listings. |
-| Data Visualization | Dashboard showing total listings posted, a bar chart of product distribution by category... |
- 
-### Optional 
-- **Search** — Search products by keyword on homepage
-- **Favourites** — Tap ❤️ on any product to save it; tap again to unsave. Saved items appear in Profile.
-- **Edit / Delete Product** — Manage own listings from Profile screen
+## Core Features
 
-## App Flow
+### Authentication
+- Firebase Email & Password Authentication
+- University selection during registration
+- User profile data stored in Firebase
+
+
+### Homepage & Product browsing
+- Browse all available listings
+- Filter products by:
+  - Category
+  - University
+- Keyword-based product search
+- Product category icons synchronized with Insights dashboard
+
+
+### Product Detail
+- View:
+  - Product image
+  - Price
+  - Description
+  - University
+  - Category
+- Buy Now purchase flow
+- Sold products are automatically disabled and displayed as: `Item Sold Out`
+
+
+### Upload Product
+Users can upload products with:
+- Product image
+- Product name
+- Description
+- Price
+- Category
+
+University information is automatically filled from the user profile.
+
+
+### AI Features (Gemini API - gemini-2.5-flash)
+
+#### AI Auto-fill
+After uploading a product image, users can tap: `Auto-fill with AI`
+
+The AI automatically generates:
+- Product title
+- Description
+- Category
+
+
+#### AI Smart Reply
+Inside chat rooms, users can generate instant reply suggestions.
+
+The AI:
+- Reads recent chat history as context
+- Identifies whether the user is a buyer or seller
+- Generates concise and natural responses
+- Adapts replies for campus marketplace conversations
+  - meetup location suggestions
+  - time arrangement
+  - confirmation replies
+
+### Data Visualization Dashboard
+
+Insights dashboard includes:
+- Total product listings
+- Product distribution by category
+- Matching category visualization icons
+
+
+### Real-time Messaging
+
+#### Product-based Chat
+- Buyers and sellers can communicate directly for a specific item
+- Each chat room is linked to its corresponding product
+
+
+#### Chat Features
+- Real-time messaging
+- Message timestamps
+- Opponent username display
+- Direct product navigation from chat header
+
+Users can tap the product card at the top of the chat room to instantly return to the Product Detail page.
+
+
+### Notification Center (Inbox)
+- Centralized conversation management
+- Stores all historical buyer & seller chats
+- Easy access to previous conversations
+
+
+### Profile Page
+Users can:
+- View account information
+- Manage uploaded products
+- View favourites
+- Access bought items
+- Access sold items
+- View dashboard analytics
+
+
+### Favourites
+- Save products using ❤️ button
+- Remove saved products anytime
+- Direct navigation to latest Product Detail page
+
+
+### Bought Items Integration
+Added dedicated Bought button support.
+
+After purchasing a sold item:
+- The system automatically retrieves buyer/seller IDs
+- Users are redirected to a dedicated OrderChatScreen
+- Simplifies post-purchase communication
+
+### Sold Items Integration
+Added dedicated Sold button support.
+
+After an item is sold:
+- Sellers can directly access the dedicated OrderChatScreen
+- The system automatically retrieves the corresponding buyer information
+- Simplifies after-sale communication and meetup arrangement
+
+
+### Public User Profile
+
+Users can tap another person's username inside chat rooms to access their public profile.
+
+The public profile displays:
+- User's name and university
+- All products currently listed by that user
+
+
+### Payment Workflow
+
+```text
+Buy Now → Confirm Payment → Payment Successful → Order Chat
 ```
-    Register 
-       ↓
-     Login
-       ↓
-   Homepage  ←─────────────────────┐                                  
-       ↓                           │
-Product Detail               Upload Product                 
-       ↓                           
-    Buy Now
-       ↓
-    Payment 
-       ↓
-Payment Successful
 
 
-  Profile Page
-  ├── My Listings (Edit / Delete) 
-  ├── Favourites List
-  └── Data Visualization Dashboard
+### App Flow
+
+```text
+Register
+   ↓
+Login
+   ↓
+Homepage
+   ├── Browse Products
+   ├── Search / Filter
+   └── Upload Product
+            ↓
+      Product Detail
+            ↓
+         Buy Now
+            ↓
+          Payment
+            ↓
+   Payment Successful
+            ↓
+   Real-time Order Chat
+
+Profile Page
+├── My Listings
+├── Favourites
+├── Bought Items
+├── Inbox
+└── Insights Dashboard
+
+Chat System
+├── Product Navigation
+├── AI Smart Reply
+└── Public User Profile
 ```
-# Setup Guide
 
-## Prerequisites
+
+## Tech Stack
+
+### Frontend
+- Flutter
+
+### Backend & Services
+- Firebase Authentication
+- Cloud Firestore
+- Firebase Storage
+
+### AI Integration
+- Gemini API (`gemini-2.5-flash`)
+
+
+## Setup Guide
+
+### Prerequisites
 - Flutter SDK installed 
 - VS Code Flutter & Dart extensions installed
 - Android Studio installed with Android emulator 
