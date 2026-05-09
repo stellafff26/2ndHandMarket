@@ -11,6 +11,7 @@ class ProductModel {
   final String sellerId;
   final String sellerName;
   final DateTime createdAt;
+  final String status; 
 
   ProductModel({
     required this.id,
@@ -23,6 +24,7 @@ class ProductModel {
     required this.sellerId,
     required this.sellerName,
     required this.createdAt,
+    required this.status, 
   });
 
   factory ProductModel.fromDoc(DocumentSnapshot doc) {
@@ -38,6 +40,7 @@ class ProductModel {
       sellerId: data['sellerId'] ?? '',
       sellerName: data['sellerName'] ?? '',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      status: data['status'] ?? 'available', 
     );
   }
 
@@ -52,6 +55,7 @@ class ProductModel {
       'sellerId': sellerId,
       'sellerName': sellerName,
       'createdAt': Timestamp.fromDate(createdAt),
+      'status': status, 
     };
   }
 }
