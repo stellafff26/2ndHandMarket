@@ -7,7 +7,7 @@ class FirestoreService {
 
   String get uid => _auth.currentUser!.uid;
 
-  // Products 
+  // --- Products ---
   Future<void> addProduct({
     required String title,
     required String description,
@@ -87,7 +87,7 @@ class FirestoreService {
     await _db.collection('products').doc(docId).update(data);
   }
 
-  // Favourites 
+  // --- Favourites ---
   Future<void> addFavourite(String productId) async {
     await _db
         .collection('favourites')
@@ -125,7 +125,7 @@ class FirestoreService {
         .snapshots();
   }
 
-  // Dashboard 
+  // --- Dashboard ---
   Future<int> getMyProductCount() async {
     final snap = await _db
         .collection('products')
@@ -165,7 +165,7 @@ class FirestoreService {
     return total / snap.docs.length;
   }
 
-  // Chats & Messages 
+  // --- Chats & Messages ---
   Future<String> getOrCreateChat({
     required String buyerId,
     required String sellerId,
@@ -183,6 +183,7 @@ class FirestoreService {
         'buyerName': buyerData.data()?['username'] ?? 'User', 
         'sellerName': sellerData.data()?['username'] ?? 'User', 
         'productId': productId,
+        'unreadBy': [], // 初始化未读状态为空
       });
     }
     return chatId;
@@ -197,11 +198,27 @@ class FirestoreService {
       'timestamp': FieldValue.serverTimestamp(),
     };
 
+    // Save message
     await _db.collection('chats').doc(chatId).collection('messages').add(messageData);
 
+    // 获取对方的 ID
+    String receiverId = '';
+    try {
+      final chatDoc = await _db.collection('chats').doc(chatId).get();
+      if (chatDoc.exists) {
+        final participants = List<String>.from(chatDoc.data()?['participants'] ?? []);
+        receiverId = participants.firstWhere((id) => id != uid, orElse: () => '');
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+
+    // Update last message in chat doc AND unreadBy array
     await _db.collection('chats').doc(chatId).update({
       'lastMessage': text.trim(),
       'lastTimestamp': FieldValue.serverTimestamp(),
+      // 标记对方未读：使用 arrayUnion 避免重复添加
+      'unreadBy': receiverId.isNotEmpty ? FieldValue.arrayUnion([receiverId]) : [], 
     });
   }
 
@@ -220,5 +237,23 @@ class FirestoreService {
         .where('participants', arrayContains: uid)
         .orderBy('lastTimestamp', descending: true)
         .snapshots();
+  }
+
+  // --- Read Receipts (Sync Inbox & Bottom NavBar) ---
+
+  // 1. 获取未读聊天的数量 (用于主页的红点)
+  Stream<int> getUnreadChatCount() {
+    return _db
+        .collection('chats')
+        .where('unreadBy', arrayContains: uid)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  // 2. 将特定聊天标记为已读 (从 unreadBy 中移除当前用户)
+  Future<void> markChatAsRead(String chatId) async {
+    await _db.collection('chats').doc(chatId).update({
+      'unreadBy': FieldValue.arrayRemove([uid]),
+    });
   }
 }
