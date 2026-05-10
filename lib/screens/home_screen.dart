@@ -17,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 
 class HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
+  final FirestoreService _service = FirestoreService();
 
   final List<Widget> pages = [
     const HomeContent(),
@@ -24,6 +25,49 @@ class HomeScreenState extends State<HomeScreen> {
     const ProfileScreen(),
     const NotificationScreen(), 
   ];
+
+  Widget _buildInboxIcon(bool isActive) {
+    return StreamBuilder<int>(
+      stream: _service.getUnreadChatCount(), // <--- 这里使用了新的方法
+      builder: (context, snapshot) {
+        final int unreadCount = snapshot.data ?? 0;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(isActive ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline),
+            if (unreadCount > 0)
+              Positioned(
+                right: -6,
+                top: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  child: Center(
+                    child: Text(
+                      unreadCount > 99 ? '99+' : unreadCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,25 +85,25 @@ class HomeScreenState extends State<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
   
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home_rounded),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.add_box_outlined),
             activeIcon: Icon(Icons.add_box_rounded),
             label: 'Upload',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profile',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            activeIcon: Icon(Icons.chat_bubble_rounded),
+            icon: _buildInboxIcon(false),
+            activeIcon: _buildInboxIcon(true),
             label: 'Inbox', 
           ),
         ],

@@ -31,6 +31,9 @@ class OrderChatScreenState extends State<OrderChatScreen> {
   void initState() {
     super.initState();
     _partnerInfoFuture = _fetchPartnerInfo();
+    
+    // 打开聊天室时，将当前聊天标记为已读（消除红点）
+    _service.markChatAsRead(widget.chatId);
   }
 
   Future<Map<String, String>> _fetchPartnerInfo() async {
