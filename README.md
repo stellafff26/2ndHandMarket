@@ -88,10 +88,14 @@ Insights dashboard includes:
 Users can tap the product card at the top of the chat room to instantly return to the Product Detail page.
 
 
-### Notification Center (Inbox)
+### Notification (Inbox)
 - Centralized conversation management
 - Stores all historical buyer & seller chats
 - Easy access to previous conversations
+- A red dot appears when a new message is received and disappears once the message is read
+- Bottom navigation bar Inbox icon displays a numbered unread message badge 
+- Chats with unread messages are highlighted with a red dot and bolded text inside the Inbox list
+- Opening a chat automatically marks messages as read and instantly updates unread counters
 
 
 ### Profile Page
