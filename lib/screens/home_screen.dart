@@ -28,7 +28,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   Widget _buildInboxIcon(bool isActive) {
     return StreamBuilder<int>(
-      stream: _service.getUnreadChatCount(), // <--- 这里使用了新的方法
+      stream: _service.getUnreadChatCount(), 
       builder: (context, snapshot) {
         final int unreadCount = snapshot.data ?? 0;
 
