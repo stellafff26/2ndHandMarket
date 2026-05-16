@@ -42,7 +42,7 @@ class NotificationScreen extends StatelessWidget {
               final chatId = chats[index].id;
               final productId = chatData['productId'];
 
-              // 判断当前聊天是否有当前用户的未读消息
+              
               final List<String> unreadBy = List<String>.from(chatData['unreadBy'] ?? []);
               final bool hasUnread = unreadBy.contains(service.uid);
 
@@ -87,14 +87,14 @@ class NotificationScreen extends StatelessWidget {
                       chatData['lastMessage'] ?? '...',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      // 如果有未读消息，稍微加深一下文字颜色和粗细
+                      
                       style: TextStyle(
                         color: hasUnread ? AppColors.textPrimary : AppColors.textSecondary,
                         fontWeight: hasUnread ? FontWeight.w600 : FontWeight.normal,
                         fontSize: 13,
                       ),
                     ),
-                    // 在 ListTile 右侧添加小红点
+                    
                     trailing: hasUnread
                         ? Container(
                             width: 10,
